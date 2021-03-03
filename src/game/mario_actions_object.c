@@ -139,6 +139,20 @@ s32 mario_update_punch_sequence(struct MarioState *m) {
                 set_mario_action(m, crouchEndAction, 0);
             }
             break;
+        //Custom Move: Ground Pound Spin
+        case 10:
+            play_mario_action_sound(m, SOUND_MARIO_YAHOO, 1);
+            set_mario_animation(m, MARIO_ANIM_BREAKDANCE);
+            animFrame = m->marioObj->header.gfx.animInfo.animFrame;
+
+            if (animFrame < 8) {
+                m->flags |= MARIO_TRIPPING;
+            }
+
+            if (is_anim_at_end(m)) {
+                set_mario_action(m, crouchEndAction, 0);
+            }
+            break;
     }
 
     return FALSE;

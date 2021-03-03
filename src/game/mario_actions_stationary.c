@@ -1045,8 +1045,39 @@ s32 act_ground_pound_land(struct MarioState *m) {
     }
 
     if (m->input & INPUT_ABOVE_SLIDE) {
+        //Custom Move: ground pound onto slide
+
+
+        m->faceAngle[1] = m->floorAngle; //face downhill
+        m->forwardVel = sqrtf(m->floor->normal.x * m->floor->normal.x + m->floor->normal.z * m->floor->normal.z) * 75;
+        m->slideYaw = m->faceAngle[1];
+
+        m->slideVelX = m->forwardVel * sins(m->faceAngle[1]);
+        m->slideVelZ = m->forwardVel * coss(m->faceAngle[1]);
+
+        m->vel[0] = m->slideVelX;
+        m->vel[1] = 0.0f;
+        m->vel[2] = m->slideVelZ;
+        play_sound(SOUND_ACTION_SPIN, m->marioObj->header.gfx.cameraToObject);
         return set_mario_action(m, ACT_BUTT_SLIDE, 0);
     }
+
+    //Custom Move: ground pound jump
+    if (gMarioState->action == ACT_GROUND_POUND_LAND) {
+       if (gMarioState->controller->buttonPressed & A_BUTTON) {
+           gMarioState->action = ACT_TRIPLE_JUMP;
+           gMarioState->forwardVel *= 0.8f;
+           gMarioState->vel[1] = 60.f;
+       }
+   }
+
+    //Custom Move: ground pound spin
+    if (gMarioState->action == ACT_GROUND_POUND_LAND) {
+       if (gMarioState->controller->buttonPressed & B_BUTTON) {
+           return set_mario_action(m, ACT_MOVE_PUNCHING, 0x000A);
+       }
+   }
+
 
     landing_step(m, MARIO_ANIM_GROUND_POUND_LANDING, ACT_BUTT_SLIDE_STOP);
     return FALSE;

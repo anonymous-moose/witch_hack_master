@@ -489,6 +489,7 @@ s32 act_hang_moving(struct MarioState *m) {
     return FALSE;
 }
 
+//Custom Move: wall climb
 s32 let_go_of_ledge(struct MarioState *m) {
     f32 floorHeight;
     struct Surface *floor;
@@ -504,7 +505,12 @@ s32 let_go_of_ledge(struct MarioState *m) {
     } else {
         m->pos[1] = floorHeight;
     }
-
+    
+    m->wall = return_wall_collisions(m->pos, 50.0f, 50.0f);
+    if(m->wall != NULL && m->wall->type == SURFACE_HANGABLE) {
+        return set_mario_action(m, ACT_WALL_CLIMB, 0); //use action arg for whether or not this is a ladder that lets you move sideways
+    }
+    
     return set_mario_action(m, ACT_SOFT_BONK, 0);
 }
 
@@ -845,6 +851,312 @@ s32 act_tornado_twirling(struct MarioState *m) {
     return FALSE;
 }
 
+/*
+        wall climb todo list:
+            make climbing up into a hangable ceiling put you in the hanging state
+            
+            make animations for the wall climbing
+
+            decide how to handle transitioning from climbable to non-climbable walls
+                fall off?
+                can't climb onto it?
+                buffer zone where you lose grip?
+            
+            Add a couple of checks to the sides?
+
+            add support for climbing on moving platforms
+    */
+
+s32 perform_wall_climb_step(struct MarioState *m, Vec3f nextPos) {
+    UNUSED s32 unused;
+    struct Surface *ceil;
+    // struct Surface *wall;
+    struct Surface *floor;
+    struct Surface *upperWall;
+    struct Surface *lowerWall;
+    struct Surface *ledgeFloor;
+    Vec3f ledgePos;
+
+    f32 ceilHeight;
+    f32 floorHeight;
+    f32 ceilOffset;
+
+    upperWall = return_wall_collisions(nextPos, 100.0f, 50.0f);
+    lowerWall = return_wall_collisions(nextPos, 30.0f, 50.0f);
+
+    m->wall = return_wall_collisions(nextPos, 50.0f, 50.0f);
+
+    //are the wall collisions pushing mario away such that he is detached from the wall?
+
+    floorHeight = find_floor(nextPos[0], nextPos[1], nextPos[2], &floor);
+    ceilHeight = vec3f_find_ceil(nextPos, floorHeight, &ceil);
+
+    //you just climbed up to a ledge
+    if(upperWall == NULL && lowerWall != NULL) {
+        
+        ledgePos[0] = nextPos[0] - m->wall->normal.x * 40.0f;
+        ledgePos[2] = nextPos[2] - m->wall->normal.z * 40.0f;
+        ledgePos[1] = find_floor(ledgePos[0], nextPos[1] + 160.0f, ledgePos[2], &ledgeFloor);
+
+        if (ledgePos[1] - nextPos[1] <= 100.0f) {
+            //return FALSE;
+        }
+
+        vec3f_copy(m->pos, ledgePos);
+        m->floor = ledgeFloor;
+        m->floorHeight = ledgePos[1];
+
+        m->floorAngle = atan2s(ledgeFloor->normal.z, ledgeFloor->normal.x);
+
+        vec3f_copy(m->vel, gVec3fZero);
+        
+        set_mario_animation(m, MARIO_ANIM_IDLE_ON_LEDGE);
+        set_mario_action(m, ACT_LEDGE_GRAB, 0);
+        // set_mario_action(m, ACT_IDLE, 0);
+        
+        
+        return HANG_NONE;
+    }
+
+
+    if (floor == NULL) {
+        return HANG_HIT_CEIL_OR_OOB;
+    }
+    if (m->wall == NULL) {
+        return HANG_LEFT_CEIL;
+    }
+    if (m->wall->type != SURFACE_HANGABLE) {
+        return HANG_LEFT_CEIL;
+    }
+
+    //you climbed down onto a floor
+    if(nextPos[1] < floorHeight) {
+        nextPos[1] = floorHeight;
+        //return HANG_LEFT_CEIL;
+    }
+    
+
+    ceilOffset = ceilHeight - (nextPos[1] + 160.0f);
+    
+
+    
+    //nextPos[1] = m->ceilHeight - 160.0f;
+    vec3f_copy(m->pos, nextPos);
+
+    m->floor = floor;
+    m->floorHeight = floorHeight;
+    m->ceil = ceil;
+    m->ceilHeight = ceilHeight;
+
+    return HANG_NONE;
+}
+
+
+s32 update_wall_climb_moving(struct MarioState *m) {
+    s32 stepResult;
+    Vec3f nextPos;
+    f32 maxSpeed = 10.0f;
+    struct Controller *controller = m->controller;
+
+
+    m->forwardVel += 1.0f;
+    if (m->forwardVel > maxSpeed) {
+        m->forwardVel = maxSpeed;
+    }
+
+    //get angle of wall (y component is always 0, because it's a wall)
+    m->faceAngle[1] = atan2s(m->wall->normal.z, m->wall->normal.x) + 0x8000;
+
+    //if you grab onto a wall with enough downwards velocity, you'll slide down a bit as you slow down
+    if(m->vel[1] < -10.0f) {
+        m->particleFlags |= PARTICLE_DUST;
+        play_sound(SOUND_ENV_SLIDING, m->marioObj->header.gfx.cameraToObject);
+    }
+
+    m->vel[0] = approach_f32(m->vel[0], (-1 * (controller->stickX / 8.0f) * sins(m->faceAngle[1]+0x4000)), 3, 3);
+    m->vel[1] = approach_f32(m->vel[1], (controller->stickY / 8.0f), 3, 3); //from -4 to 4
+    m->vel[2] = approach_f32(m->vel[2], (-1 * (controller->stickX / 8.0f) * coss(m->faceAngle[1]+0x4000)), 3, 3);
+
+    //maybe make a wall collision check function that doesn't apply any sort of push?
+
+    nextPos[0] = m->pos[0] + m->vel[0] - m->wall->normal.x * 20.0f; //make sure you're glued to that dang wall
+    nextPos[1] = m->pos[1] + m->vel[1]; //Y
+    nextPos[2] = m->pos[2] + m->vel[2] - m->wall->normal.z * 20.0f;
+
+    stepResult = perform_wall_climb_step(m, nextPos);
+
+    vec3f_copy(m->marioObj->header.gfx.pos, m->pos);
+    vec3s_set(m->marioObj->header.gfx.angle, 0, m->faceAngle[1], 0);
+    return stepResult;
+}
+
+void update_wall_climb_stationary(struct MarioState *m) {
+    //we can't count on the wall staying still
+    m->faceAngle[1] = atan2s(m->wall->normal.z, m->wall->normal.x) + 0x8000;
+    m->forwardVel = 0.0f;
+    m->slideVelX = 0.0f;
+    m->slideVelZ = 0.0f;
+
+    m->pos[0] -= m->wall->normal.x * 20.0f;
+    m->pos[2] -= m->wall->normal.z * 20.0f;
+    //m->pos[1] = m->ceilHeight - 160.0f;
+    
+
+    vec3f_copy(m->vel, gVec3fZero);
+    vec3f_copy(m->marioObj->header.gfx.pos, m->pos);
+}
+
+s32 act_start_wall_climb(struct MarioState *m) {
+#if ENABLE_RUMBLE
+    if (m->actionTimer++ == 0) {
+        queue_rumble_data(5, 80);
+    }
+#else
+    m->actionTimer++;
+#endif
+
+    if (m->wall == NULL) {
+        return set_mario_action(m, ACT_FREEFALL, 0);
+    }
+    //! Crash if Mario's referenced ceiling is NULL (same for other hanging actions)
+    if (m->wall->type != SURFACE_HANGABLE) {
+        return set_mario_action(m, ACT_FREEFALL, 0);
+    }
+
+    m->faceAngle[1] = atan2s(m->wall->normal.z, m->wall->normal.x) + 0x8000;
+
+    if ((m->input & INPUT_NONZERO_ANALOG) && m->actionTimer >= 31) {
+        m->pos[0] -= m->wall->normal.x * 20.0f;
+        m->pos[2] -= m->wall->normal.z * 20.0f;
+        return set_mario_action(m, ACT_WALL_CLIMB, 0);
+    }
+
+    // if (!(m->input & INPUT_A_DOWN)) {
+    //     return set_mario_action(m, ACT_FREEFALL, 0);
+    // }
+
+    if(m->input & INPUT_A_PRESSED) {
+        //m->forwardVel = 24.0f;
+        play_sound(SOUND_ACTION_TERRAIN_STEP, m->marioObj->header.gfx.cameraToObject);
+        m->faceAngle[1] += 0x8000;
+        return set_mario_action(m, ACT_WALL_KICK_AIR, 0);
+    }
+
+
+    if (m->input & INPUT_Z_PRESSED) {
+        return set_mario_action(m, ACT_SOFT_BONK, 0);
+    }
+
+    
+
+    // set_mario_animation(m, MARIO_ANIM_HANG_ON_CEILING);
+    set_mario_animation(m, MARIO_ANIM_A_POSE);
+    
+    play_sound_if_no_flag(m, SOUND_ACTION_HANGING_STEP, MARIO_ACTION_SOUND_PLAYED);
+    update_wall_climb_stationary(m);
+
+    if (is_anim_at_end(m)) {
+        m->pos[0] -= m->wall->normal.x * 50.0f;
+        m->pos[2] -= m->wall->normal.z * 50.0f;
+        set_mario_action(m, ACT_WALL_CLIMB, 0);
+    }
+
+    return FALSE;
+}
+
+//ACT_WALL_CLIMB
+s32 act_wall_climb(struct MarioState *m) {
+    if(m->vel[1] > 20.0f) {
+        m->vel[1] = 20.0f;
+    }
+    if(m->vel[1] < -50.0f) {
+        m->vel[1] = -50.0f;
+    }
+
+    if (m->input & INPUT_NONZERO_ANALOG) {
+        return set_mario_action(m, ACT_WALL_CLIMB_MOVING, m->actionArg);
+    }
+
+    if(m->input & INPUT_A_PRESSED) {
+        play_sound(SOUND_ACTION_TERRAIN_STEP, m->marioObj->header.gfx.cameraToObject);
+        m->faceAngle[1] += 0x8000;
+        return set_mario_action(m, ACT_WALL_KICK_AIR, 0);
+    }
+
+    if (m->input & INPUT_Z_PRESSED) {
+        return set_mario_action(m, ACT_SOFT_BONK, 0);
+    }
+
+    if (m->wall->type != SURFACE_HANGABLE) {
+        return set_mario_action(m, ACT_FREEFALL, 0);
+    }
+
+    if (m->actionArg & 1) {
+        set_mario_animation(m, MARIO_ANIM_HANDSTAND_LEFT);
+    } else {
+        set_mario_animation(m, MARIO_ANIM_HANDSTAND_RIGHT);
+    }
+
+    update_wall_climb_stationary(m);
+
+    return FALSE;
+}
+
+//ACT_WALL_CLIMB_MOVING
+s32 act_wall_climb_moving(struct MarioState *m) {
+    // if (!(m->input & INPUT_A_DOWN)) {
+    //     return set_mario_action(m, ACT_FREEFALL, 0);
+    // }
+
+    if(m->vel[1] > 20.0f) {
+        m->vel[1] = 20.0f;
+    }
+    if(m->vel[1] < -50.0f) {
+        m->vel[1] = -50.0f;
+    }
+
+    if(m->input & INPUT_A_PRESSED) {
+        play_sound(SOUND_ACTION_TERRAIN_STEP, m->marioObj->header.gfx.cameraToObject);
+        m->faceAngle[1] += 0x8000;
+        return set_mario_action(m, ACT_WALL_KICK_AIR, 0);
+    }
+
+    if (m->input & INPUT_Z_PRESSED) {
+        return set_mario_action(m, ACT_SOFT_BONK, 0);
+    }
+
+    if (m->wall->type != SURFACE_HANGABLE) {
+        return set_mario_action(m, ACT_FREEFALL, 0);
+    }
+
+    if (m->actionArg & 1) {
+        set_mario_animation(m, MARIO_ANIM_MOVE_ON_WIRE_NET_RIGHT);
+    } else {
+        set_mario_animation(m, MARIO_ANIM_MOVE_ON_WIRE_NET_LEFT);
+    }
+
+    if (m->marioObj->header.gfx.animInfo.animFrame == 12) {
+        play_sound(SOUND_ACTION_HANGING_STEP, m->marioObj->header.gfx.cameraToObject);
+#if ENABLE_RUMBLE
+        queue_rumble_data(1, 30);
+#endif
+    }
+
+    if (is_anim_past_end(m)) {
+        m->actionArg ^= 1;
+        if (m->input & INPUT_UNKNOWN_5) {
+            return set_mario_action(m, ACT_WALL_CLIMB, m->actionArg);
+        }
+    }
+
+    if (update_wall_climb_moving(m) == HANG_LEFT_CEIL) {
+        set_mario_action(m, ACT_FREEFALL, 0);
+    }
+
+    return FALSE;
+}
+
+
 s32 check_common_automatic_cancels(struct MarioState *m) {
     if (m->pos[1] < m->waterLevel - 100) {
         return set_water_plunge_action(m);
@@ -881,6 +1193,8 @@ s32 mario_execute_automatic_action(struct MarioState *m) {
         case ACT_GRABBED:                cancel = act_grabbed(m);                break;
         case ACT_IN_CANNON:              cancel = act_in_cannon(m);              break;
         case ACT_TORNADO_TWIRLING:       cancel = act_tornado_twirling(m);       break;
+        case ACT_WALL_CLIMB:             cancel = act_wall_climb(m);             break;
+        case ACT_WALL_CLIMB_MOVING:      cancel = act_wall_climb_moving(m);      break;
     }
     /* clang-format on */
 

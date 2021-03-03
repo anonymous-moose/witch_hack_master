@@ -36,8 +36,11 @@ void play_far_fall_sound(struct MarioState *m) {
 void play_knockback_sound(struct MarioState *m) {
     if (m->actionArg == 0 && (m->forwardVel <= -28.0f || m->forwardVel >= 28.0f)) {
         play_sound_if_no_flag(m, SOUND_MARIO_DOH, MARIO_MARIO_SOUND_PLAYED);
-    } else {
+    } else if (m->actionArg == 0) {
         play_sound_if_no_flag(m, SOUND_MARIO_UH, MARIO_MARIO_SOUND_PLAYED);
+    }
+    else {
+        play_sound_if_no_flag(m, SOUND_MARIO_WHOA, MARIO_MARIO_SOUND_PLAYED);
     }
 }
 #endif
@@ -503,6 +506,30 @@ s32 act_triple_jump(struct MarioState *m) {
 }
 
 s32 act_backflip(struct MarioState *m) {
+    //Custom Move: dive out of a backflip
+    f32 ySpeed = m->vel[1];
+    // first frame of a backflip, y velocity is 62
+    // the dive should be able to get more distance the nearer you are to the apex of the jump
+    if (m->input & INPUT_B_PRESSED) {
+        m->faceAngle[1] += 0x8000;
+
+        if(ySpeed <= -62.0f || ySpeed >= 62.0f) {
+            m->vel[1] *= 0.25;
+            m->forwardVel = 0;
+        }
+        else {
+            m->forwardVel *= -0.25f * sqrtf(3844.0f - (ySpeed * ySpeed));
+            m->vel[1] *= 0.25;
+            if(m->forwardVel > 24.0f) {
+                m->forwardVel = 24.0f;
+            }
+            if(m->forwardVel < -24.0f) {
+                m->forwardVel = -24.0f;
+            }
+        }
+        
+        return set_mario_action(m, ACT_DIVE, 0);
+    }
     if (m->input & INPUT_Z_PRESSED) {
         return set_mario_action(m, ACT_GROUND_POUND, 0);
     }
@@ -1306,6 +1333,35 @@ s32 act_air_hit_wall(struct MarioState *m) {
     if (m->heldObj != NULL) {
         mario_drop_held_object(m);
     }
+
+    //Custom Move: Can't Wall Kick off very slippery Surfaces
+    
+    switch (m->wall->type) {
+        case SURFACE_VERY_SLIPPERY:
+        case SURFACE_ICE:
+        case SURFACE_HARD_VERY_SLIPPERY:
+        case SURFACE_NOISE_VERY_SLIPPERY_73:
+        case SURFACE_NOISE_VERY_SLIPPERY_74:
+        case SURFACE_NOISE_VERY_SLIPPERY:
+        case SURFACE_NO_CAM_COL_VERY_SLIPPERY:
+            m->wallKickTimer = 0;
+            if (m->vel[1] > 0.0f) {
+            m->vel[1] = 0.0f;
+            }
+
+            if (m->forwardVel > 8.0f) {
+                mario_set_forward_vel(m, -8.0f);
+            }
+            play_sound(SOUND_MOVING_TERRAIN_SLIDE + SOUND_TERRAIN_ICE, m->marioObj->header.gfx.cameraToObject);
+            return set_mario_action(m, ACT_SOFT_BONK, 1);
+
+        //Custom Move: Climbable walls
+        case SURFACE_HANGABLE:
+            //this is used as the climbable wall type, for now
+            return set_mario_action(m, ACT_WALL_CLIMB, 0); //use action arg for whether or not this is a ladder that lets you move sideways
+            break;
+        }
+        
 
     if (++(m->actionTimer) <= 2) {
         if (m->input & INPUT_A_PRESSED) {

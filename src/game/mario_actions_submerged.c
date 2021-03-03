@@ -326,6 +326,7 @@ static void common_idle_step(struct MarioState *m, s32 animation, s32 arg) {
     set_swimming_at_surface_particles(m, PARTICLE_IDLE_WATER_WAVE);
 }
 
+
 static s32 act_water_idle(struct MarioState *m) {
     u32 val = 0x10000;
 
@@ -339,6 +340,11 @@ static s32 act_water_idle(struct MarioState *m) {
 
     if (m->input & INPUT_A_PRESSED) {
         return set_mario_action(m, ACT_BREASTSTROKE, 0);
+    }
+
+    //Custom Move: Underwater Ground-pound
+    if (m->input & INPUT_Z_PRESSED) {
+        return set_mario_action(m, ACT_WATER_GROUND_POUND, 0);
     }
 
     if (m->faceAngle[0] < -0x1000) {
@@ -519,6 +525,11 @@ static s32 act_breaststroke(struct MarioState *m) {
         return set_mario_action(m, ACT_WATER_PUNCH, 0);
     }
 
+    //Custom Move: Water Ground Pound
+    if (m->input & INPUT_Z_PRESSED) {
+        return set_mario_action(m, ACT_WATER_GROUND_POUND, 0);
+    }
+
     if (++m->actionTimer == 14) {
         return set_mario_action(m, ACT_FLUTTER_KICK, 0);
     }
@@ -566,6 +577,147 @@ static s32 act_breaststroke(struct MarioState *m) {
     return FALSE;
 }
 
+//Custom Move: Water Ground Pound
+s32 act_water_ground_pound(struct MarioState *m) {
+    u32 stepResult;
+    f32 yOffset;
+
+    if (m->flags & MARIO_METAL_CAP) {
+        return set_mario_action(m, ACT_METAL_WATER_FALLING, 1);
+    }
+    
+    if (m->actionState == 0) {
+
+        if(m->actionTimer < 10) {
+            //clear pitch and roll while doing the little spin at the start
+            m->faceAngle[0] = approach_s32(m->faceAngle[0], 0, 0x400, 0x400);
+            m->faceAngle[2] = approach_s32(m->faceAngle[2], 0, 0x200, 0x200);
+
+            //if you cancel out of the little ground-pound spin with a swimming stroke, you get a little extra boost of speed
+            //gotta wait at least 5 frames to cancel out, though
+            if(m->actionTimer > 4) {
+                if (m->input & INPUT_B_PRESSED) {
+                    m->forwardVel = 200.0f;
+                    sSwimStrength = 500;
+                    // common_swimming_step(m, 200);
+                    return set_mario_action(m, ACT_WATER_PUNCH, 1);
+                }
+                if (m->input & INPUT_A_PRESSED) {
+                    
+                    // common_swimming_step(m, 200);
+                    m->forwardVel = 200.0f;
+                    mario_set_forward_vel(m, 200.0f);
+                    sSwimStrength = 500;
+                    return set_mario_action(m, ACT_BREASTSTROKE, 1);
+                }
+            }
+        } 
+        else {
+            if (m->input & INPUT_B_PRESSED) {
+                return set_mario_action(m, ACT_WATER_PUNCH, 0);
+            }
+            if (m->input & INPUT_A_PRESSED) {
+                return set_mario_action(m, ACT_BREASTSTROKE, 0);
+            }
+        }
+
+
+
+
+        m->vel[1] = -35.0f;
+        mario_set_forward_vel(m, 0.0f);
+
+        set_mario_animation(m, m->actionArg == 0 ? MARIO_ANIM_START_GROUND_POUND
+                                                 : MARIO_ANIM_TRIPLE_JUMP_GROUND_POUND);
+        if (m->actionTimer == 0) {
+            play_sound(SOUND_ACTION_SWIM, m->marioObj->header.gfx.cameraToObject);
+        }
+
+        m->actionTimer++;
+        if (m->actionTimer >= m->marioObj->header.gfx.animInfo.curAnim->loopEnd + 4) {
+            play_sound(SOUND_ACTION_SWIM_FAST, m->marioObj->header.gfx.cameraToObject);
+            m->actionState = 1;
+        }
+    } else {
+
+        if (m->input & INPUT_B_PRESSED) {
+            return set_mario_action(m, ACT_WATER_PUNCH, 0);
+        }
+        if (m->input & INPUT_A_PRESSED) {
+            return set_mario_action(m, ACT_BREASTSTROKE, 0);
+        }
+
+        set_mario_animation(m, MARIO_ANIM_GROUND_POUND);
+        m->particleFlags |= PARTICLE_BUBBLE | PARTICLE_PLUNGE_BUBBLE;
+        m->vel[1] += 1.0f; //slow down due to drag
+        
+        //you can water groundpound again, about halfway through
+        if(m->vel[1] > -10.0f) {
+            //Custom Move: Underwater Ground-pound
+            if (m->input & INPUT_Z_PRESSED) {
+                return set_mario_action(m, ACT_WATER_GROUND_POUND, 0);
+            }
+        }
+
+        stepResult = perform_water_step(m);
+        
+
+        if (stepResult == WATER_STEP_HIT_FLOOR) {
+            
+            play_mario_heavy_landing_sound(m, SOUND_ACTION_TERRAIN_HEAVY_LANDING);
+            
+            
+            m->particleFlags |= PARTICLE_MIST_CIRCLE;
+            set_camera_shake_from_hit(SHAKE_GROUND_POUND);
+            return set_mario_action(m, ACT_WATER_GROUND_POUND_LAND, 0);
+        } else if (stepResult == WATER_STEP_HIT_WALL) {
+            mario_set_forward_vel(m, -16.0f);
+            if (m->vel[1] > 0.0f) {
+                m->vel[1] = 0.0f;
+            }
+
+            m->particleFlags |= PARTICLE_VERTICAL_STAR;
+            return set_mario_action(m, ACT_BACKWARD_WATER_KB, 0);
+        }
+
+        if (m->vel[1] > 0.0f) {
+            m->vel[1] = 0.0f;
+            return set_mario_action(m, ACT_WATER_IDLE, 0);
+        }
+        
+    }
+
+    return FALSE;
+}
+
+s32 act_water_ground_pound_land(struct MarioState *m) {
+    m->actionState = 1;
+
+    if (m->flags & MARIO_METAL_CAP) {
+        return set_mario_action(m, ACT_METAL_WATER_FALLING, 1);
+    }
+    if (m->input & INPUT_B_PRESSED) {
+        return set_mario_action(m, ACT_WATER_PUNCH, 0);
+    }
+    if (m->input & INPUT_A_PRESSED) {
+        return set_mario_action(m, ACT_BREASTSTROKE, 0);
+    }
+    //Custom Move: Underwater Ground-pound
+    if (m->input & INPUT_Z_PRESSED) {
+        return set_mario_action(m, ACT_WATER_GROUND_POUND, 0);
+    }
+
+
+    stationary_ground_step(m);
+    
+    set_mario_animation(m, MARIO_ANIM_GROUND_POUND_LANDING);
+    if (is_anim_at_end(m)) {
+        return set_mario_action(m, ACT_WATER_IDLE, 0);
+    }
+    return FALSE;
+}
+
+
 static s32 act_swimming_end(struct MarioState *m) {
     if (m->flags & MARIO_METAL_CAP) {
         return set_mario_action(m, ACT_METAL_WATER_FALLING, 1);
@@ -573,6 +725,11 @@ static s32 act_swimming_end(struct MarioState *m) {
 
     if (m->input & INPUT_B_PRESSED) {
         return set_mario_action(m, ACT_WATER_PUNCH, 0);
+    }
+
+    //Custom Move: Water Ground Pound
+    if (m->input & INPUT_Z_PRESSED) {
+        return set_mario_action(m, ACT_WATER_GROUND_POUND, 0);
     }
 
     if (m->actionTimer >= 15) {
@@ -619,6 +776,11 @@ static s32 act_flutter_kick(struct MarioState *m) {
         return set_mario_action(m, ACT_SWIMMING_END, 0);
     }
 
+    //Custom Move: Water Ground Pound
+    if (m->input & INPUT_Z_PRESSED) {
+        return set_mario_action(m, ACT_WATER_GROUND_POUND, 0);
+    }
+
     m->forwardVel = approach_f32(m->forwardVel, 12.0f, 0.1f, 0.15f);
     m->actionTimer = 1;
     sSwimStrength = MIN_SWIM_STRENGTH;
@@ -647,6 +809,11 @@ static s32 act_hold_breaststroke(struct MarioState *m) {
 
     if (m->input & INPUT_B_PRESSED) {
         return set_mario_action(m, ACT_WATER_THROW, 0);
+    }
+
+    //Custom Move: Water Ground Pound
+    if (m->input & INPUT_Z_PRESSED) {
+        return set_mario_action(m, ACT_WATER_GROUND_POUND, 0);
     }
 
     if (check_water_jump(m)) {
@@ -700,6 +867,11 @@ static s32 act_hold_swimming_end(struct MarioState *m) {
         return set_mario_action(m, ACT_WATER_THROW, 0);
     }
 
+    //Custom Move: Water Ground Pound
+    if (m->input & INPUT_Z_PRESSED) {
+        return set_mario_action(m, ACT_WATER_GROUND_POUND, 0);
+    }
+
     if (check_water_jump(m)) {
         return TRUE;
     }
@@ -731,6 +903,11 @@ static s32 act_hold_flutter_kick(struct MarioState *m) {
 
     if (!(m->input & INPUT_A_DOWN)) {
         return set_mario_action(m, ACT_HOLD_SWIMMING_END, 0);
+    }
+
+    //Custom Move: Water Ground Pound
+    if (m->input & INPUT_Z_PRESSED) {
+        return set_mario_action(m, ACT_WATER_GROUND_POUND, 0);
     }
 
     m->forwardVel = approach_f32(m->forwardVel, 12.0f, 0.1f, 0.15f);
@@ -1566,6 +1743,8 @@ s32 mario_execute_submerged_action(struct MarioState *m) {
         case ACT_HOLD_METAL_WATER_FALL_LAND: cancel = act_hold_metal_water_fall_land(m); break;
         case ACT_HOLD_METAL_WATER_JUMP:      cancel = act_hold_metal_water_jump(m);      break;
         case ACT_HOLD_METAL_WATER_JUMP_LAND: cancel = act_hold_metal_water_jump_land(m); break;
+        case ACT_WATER_GROUND_POUND:         cancel = act_water_ground_pound(m);         break;
+        case ACT_WATER_GROUND_POUND_LAND:    cancel = act_water_ground_pound_land(m);    break;
     }
     /* clang-format on */
 
