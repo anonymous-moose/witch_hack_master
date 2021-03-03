@@ -1,4 +1,4 @@
-# Puppy Camera 2 for SM64
+# Witch Hack Master Branch: Puppy Camera 2 for SM64
 
 The long awaited sequel to the critically acclaimed (allegedly) Puppy Camera is here. Rewritten from the ground up, this camera aims to improve on the flaws underneath in the code the original had. The original Puppycam was written when I was still learning a lot of things in C, and I missed out on some basic things. Puppycam2 is (in my opinion) a much better codebase than the original, being completely unrecognisable from what it once was.
 
