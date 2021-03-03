@@ -64,4 +64,12 @@ extern Gfx dl_billboard_num_7[];
 extern Gfx dl_billboard_num_8[];
 extern Gfx dl_billboard_num_9[];
 
+extern u8 render_hud_witchhead_texture[];
+
+extern u8 render_hud_runestone_texture[];
+extern u8 render_hud_runestone_texture_pal_rgba16[];
+
+extern u8 render_hud_coin_texture[];
+extern u8 render_hud_coin_texture_pal_rgba16[];
+
 #endif // SEGMENT2_H
