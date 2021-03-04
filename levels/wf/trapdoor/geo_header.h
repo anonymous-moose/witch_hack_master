@@ -1,0 +1,11 @@
+extern const GeoLayout trapdoor_geo[];
+extern Lights1 trapdoor_IceTowerTrapdoor_lights;
+extern u8 trapdoor_CI4_Trapdoor2_ci4[];
+extern u8 trapdoor_CI4_Trapdoor2_ci4_pal_rgba16[];
+extern Vtx trapdoor_IceTowerTrapdoorVisual_mesh_layer_1_vtx_cull[8];
+extern Vtx trapdoor_IceTowerTrapdoorVisual_mesh_layer_1_vtx_0[12];
+extern Gfx trapdoor_IceTowerTrapdoorVisual_mesh_layer_1_tri_0[];
+extern Gfx mat_trapdoor_IceTowerTrapdoor[];
+extern Gfx mat_revert_trapdoor_IceTowerTrapdoor[];
+extern Gfx trapdoor_IceTowerTrapdoorVisual_mesh_layer_1[];
+extern Gfx trapdoor_material_revert_render_settings[];

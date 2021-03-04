@@ -73,3 +73,5 @@
 #include "levels/wf/ice_drill/collision.inc.c"
 #include "levels/wf/leg_sweeper/model.inc.c"
 #include "levels/wf/leg_sweeper/collision.inc.c"
+#include "levels/wf/trapdoor/model.inc.c"
+#include "levels/wf/trapdoor/collision.inc.c"

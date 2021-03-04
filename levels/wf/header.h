@@ -109,4 +109,8 @@ extern const LevelScript level_wf_entry[];
 
 #include "levels/wf/leg_sweeper/collision_header.h"
 
+#include "levels/wf/trapdoor/geo_header.h"
+
+#include "levels/wf/trapdoor/collision_header.h"
+
 #endif

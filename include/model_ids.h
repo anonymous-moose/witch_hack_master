@@ -590,6 +590,7 @@
 //Kaitlyn's Custom Model IDs
 #define MODEL_ICELEVEL_ICEDRILL 0x36
 #define MODEL_ICELEVEL_LEGSWEEPER 0x37
+#define MODEL_ICELEVEL_TRAPDOOR 0x38
 
 
 #endif // MODEL_IDS_H

@@ -546,5 +546,6 @@ extern const BehaviorScript bhvUnusedFakeStar[];
 //Kaitlyn's Custom Behavior Scripts
 extern const BehaviorScript bhvIcelevelIcedrill[];
 extern const BehaviorScript bhvIcelevelLegsweeper[];
+extern const BehaviorScript bhvTrapdoor[];
 
 #endif // BEHAVIOR_DATA_H

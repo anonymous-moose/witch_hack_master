@@ -555,6 +555,7 @@ void bhv_volcano_trap_loop(void);
 //Kaitlyn's Custom Behavior Functions
 void bhv_icelevel_icedrill_init(void);
 void bhv_icelevel_icedrill_loop(void);
+void bhv_trapdoor_loop(void);
 
 
 

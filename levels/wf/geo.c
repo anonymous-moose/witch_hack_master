@@ -45,3 +45,4 @@
 
 #include "levels/wf/ice_drill/geo.inc.c"
 #include "levels/wf/leg_sweeper/geo.inc.c"
+#include "levels/wf/trapdoor/geo.inc.c"

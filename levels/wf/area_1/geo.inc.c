@@ -64,7 +64,6 @@ const GeoLayout wf_dl_MainAreaRoom_geo[] = {
 			GEO_OPEN_NODE(),
 				GEO_DISPLAY_LIST(1, wf_dl_StoneArch_mesh_layer_1),
 			GEO_CLOSE_NODE(),
-			GEO_TRANSLATE_NODE(LAYER_OPAQUE, 5415, 1344, -2234),
 			GEO_TRANSLATE_NODE_WITH_DL(LAYER_TRANSPARENT_DECAL, -3996, -364, -796, wf_dl_WaterEdge_mesh),
 		GEO_CLOSE_NODE(),
 	GEO_CLOSE_NODE(),
