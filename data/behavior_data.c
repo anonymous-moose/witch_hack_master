@@ -6106,4 +6106,15 @@ const BehaviorScript bhvIntroScene[] = {
     END_LOOP(),
 };
 
+//Kaitlyn's Custom Behavior scripts
 
+const BehaviorScript bhvIcelevelIcedrill[] = {
+    BEGIN(OBJ_LIST_SURFACE),
+    LOAD_COLLISION_DATA(ice_drill_collision),
+    CALL_NATIVE(bhv_icelevel_icedrill_init),
+    OR_INT(oFlags, (OBJ_FLAG_COMPUTE_DIST_TO_MARIO | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE)),
+    SET_HOME(),
+    BEGIN_LOOP(),
+        CALL_NATIVE(bhv_icelevel_icedrill_loop),
+    END_LOOP(),
+};

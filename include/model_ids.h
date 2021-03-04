@@ -586,4 +586,9 @@
 #define MODEL_VCUTM_WARP_PIPE                     MODEL_LEVEL_GEOMETRY_16   // warp_pipe_geo
 #define MODEL_CASTLE_GROUNDS_WARP_PIPE            MODEL_LEVEL_GEOMETRY_16   // warp_pipe_geo
 
+
+//Kaitlyn's Custom Model IDs
+#define MODEL_ICELEVEL_ICEDRILL 0x36
+
+
 #endif // MODEL_IDS_H

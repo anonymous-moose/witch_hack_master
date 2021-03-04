@@ -421,7 +421,14 @@ u32 common_air_action_step(struct MarioState *m, u32 landAction, s32 animation, 
                     }
                 }
             } else {
-                mario_set_forward_vel(m, 0.0f);
+                //Custom Move: Wall Climb
+                //enter wall climb state if mario has > 4 speed
+                if (m->wall != NULL && m->wall->type == SURFACE_HANGABLE && m->forwardVel > 4.0f) {
+                    set_mario_action(m, ACT_WALL_CLIMB, 0); //use action arg for whether or not this is a ladder that lets you move sideways
+                } else {
+                    mario_set_forward_vel(m, 0.0f);
+                }
+                
             }
             break;
 
