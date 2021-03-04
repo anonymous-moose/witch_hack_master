@@ -4,7 +4,9 @@
 #endif
 
 void bhv_icelevel_icedrill_init(void) {
+	//if needed, this scaling can be controlled by bparams
 	o->header.gfx.scale[0] *= 2.0f;
+	//o->header.gfx.scale[1] *= 2.0f;
 	o->header.gfx.scale[2] *= 2.0f;
 }
 

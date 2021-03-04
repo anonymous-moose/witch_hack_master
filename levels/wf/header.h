@@ -105,4 +105,8 @@ extern const LevelScript level_wf_entry[];
 
 #include "levels/wf/ice_drill/collision_header.h"
 
+#include "levels/wf/leg_sweeper/geo_header.h"
+
+#include "levels/wf/leg_sweeper/collision_header.h"
+
 #endif

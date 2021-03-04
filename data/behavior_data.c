@@ -6118,3 +6118,15 @@ const BehaviorScript bhvIcelevelIcedrill[] = {
         CALL_NATIVE(bhv_icelevel_icedrill_loop),
     END_LOOP(),
 };
+
+const BehaviorScript bhvIcelevelLegsweeper[] = {
+    BEGIN(OBJ_LIST_SURFACE),
+    OR_INT(oFlags, (OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE)),
+    LOAD_COLLISION_DATA(leg_sweeper_collision),
+    SET_HOME(),
+    BEGIN_LOOP(),
+        SET_INT(oAngleVelYaw,  0x200),
+        ADD_INT(oMoveAngleYaw, 0x200),
+        CALL_NATIVE(load_object_collision_model),
+    END_LOOP(),
+};
