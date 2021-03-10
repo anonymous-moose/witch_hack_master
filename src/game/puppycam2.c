@@ -551,7 +551,7 @@ static void puppycam_view_height_offset(void)
                          (gPuppyCam.pos[1] - gPuppyCam.focus[1]) + (gPuppyCam.pos[2] - gPuppyCam.focus[2]) * (gPuppyCam.pos[2] - gPuppyCam.focus[2]));
 
     floorTemp = find_floor_height(gPuppyCam.targetObj->oPosX, gPuppyCam.targetObj->oPosY+200, gPuppyCam.targetObj->oPosZ);
-    if (floorTemp > gPuppyCam.targetObj->oPosY - 200 && !(gMarioState->action & ACT_FLAG_SWIMMING))
+    if (floorTemp > gPuppyCam.targetObj->oPosY - 200 && !(gMarioState->action & ACT_FLAG_SWIMMING_OR_FLYING))
     {
         gPuppyCam.posHeight[0] = approach_f32_asymptotic(gPuppyCam.posHeight[0],floorTemp-gPuppyCam.targetFloorHeight,0.05f);
         //if (gPuppyCam.posHeight[0]-gPuppyCam.shake[1] - gPuppyCam.floorY[1] < floorTemp)
@@ -564,7 +564,7 @@ static void puppycam_view_height_offset(void)
 
 
     floorTemp = find_floor_height(gPuppyCam.targetObj->oPosX + LENSIN(tempDist,gPuppyCam.yaw), gPuppyCam.targetObj->oPosY+200, gPuppyCam.targetObj->oPosZ + LENCOS(tempDist,gPuppyCam.yaw));
-    if (floorTemp > gPuppyCam.targetObj->oPosY - 200 && !(gMarioState->action & ACT_FLAG_SWIMMING))
+    if (floorTemp > gPuppyCam.targetObj->oPosY - 200 && !(gMarioState->action & ACT_FLAG_SWIMMING_OR_FLYING) && gPuppyCam.collisionDistance != gPuppyCam.zoomTarget)
     {
         gPuppyCam.posHeight[1] = approach_f32_asymptotic(gPuppyCam.posHeight[1],floorTemp-gPuppyCam.targetFloorHeight,0.05f);
         //if (gPuppyCam.posHeight[1]-gPuppyCam.shake[1] - gPuppyCam.floorY[0] < floorTemp)
@@ -1114,15 +1114,23 @@ static void puppycam_collision(void)
         gPuppyCam.opacity = 255;
 }
 
+extern Vec3f sOldPosition;
+extern Vec3f sOldFocus;
+
 //Applies the PuppyCam values to the actual game's camera, giving the final product.
 static void puppycam_apply(void)
 {
     vec3f_set(gLakituState.pos, (f32)gPuppyCam.pos[0], (f32)gPuppyCam.pos[1], (f32)gPuppyCam.pos[2]);
-    vec3f_set(gLakituState.focus, (f32)gPuppyCam.focus[0], (f32)gPuppyCam.focus[1], (f32)gPuppyCam.focus[2]);
     vec3f_set(gLakituState.goalPos, (f32)gPuppyCam.pos[0], (f32)gPuppyCam.pos[1], (f32)gPuppyCam.pos[2]);
-    vec3f_set(gLakituState.goalFocus, (f32)gPuppyCam.focus[0], (f32)gPuppyCam.focus[1], (f32)gPuppyCam.focus[2]);
+    vec3f_set(gLakituState.curPos, (f32)gPuppyCam.pos[0], (f32)gPuppyCam.pos[1], (f32)gPuppyCam.pos[2]);
     vec3f_set(gCamera->pos, (f32)gPuppyCam.pos[0], (f32)gPuppyCam.pos[1], (f32)gPuppyCam.pos[2]);
+    vec3f_set(sOldPosition, (f32)gPuppyCam.pos[0], (f32)gPuppyCam.pos[1], (f32)gPuppyCam.pos[2]);
+
+    vec3f_set(gLakituState.focus, (f32)gPuppyCam.focus[0], (f32)gPuppyCam.focus[1], (f32)gPuppyCam.focus[2]);
+    vec3f_set(gLakituState.goalFocus, (f32)gPuppyCam.focus[0], (f32)gPuppyCam.focus[1], (f32)gPuppyCam.focus[2]);
+    vec3f_set(gLakituState.curFocus, (f32)gPuppyCam.focus[0], (f32)gPuppyCam.focus[1], (f32)gPuppyCam.focus[2]);
     vec3f_set(gCamera->focus, (f32)gPuppyCam.focus[0], (f32)gPuppyCam.focus[1], (f32)gPuppyCam.focus[2]);
+    vec3f_set(sOldFocus, (f32)gPuppyCam.focus[0], (f32)gPuppyCam.focus[1], (f32)gPuppyCam.focus[2]);
 
     gCamera->yaw = gPuppyCam.yaw;
     gCamera->nextYaw = gPuppyCam.yaw;

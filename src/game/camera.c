@@ -3224,8 +3224,6 @@ void update_camera(struct Camera *c) {
             }
         }
         puppycam_loop();
-        vec3f_set(sOldPosition, (f32)gPuppyCam.pos[0], (f32)gPuppyCam.pos[1], (f32)gPuppyCam.pos[2]);
-        vec3f_set(sOldFocus, (f32)gPuppyCam.focus[0], (f32)gPuppyCam.focus[1], (f32)gPuppyCam.focus[2]);
     }
 
 
