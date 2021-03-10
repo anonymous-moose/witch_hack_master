@@ -921,7 +921,7 @@ static void puppycam_projection(void)
         else
             gPuppyCam.zoom = approach_f32_asymptotic(gPuppyCam.zoom,gPuppyCam.zoomTarget,0.1f);
 
-        if (!(gMarioState->action & ACT_FLAG_SWIMMING))
+        if (!(gMarioState->action & ACT_FLAG_SWIMMING_OR_FLYING))
         {
             gPuppyCam.floorY[0] = CLAMP(gPuppyCam.targetObj->oPosY - gPuppyCam.lastTargetFloorHeight, 0, 300);
             gPuppyCam.floorY[1] = CLAMP(gPuppyCam.targetObj->oPosY - gPuppyCam.lastTargetFloorHeight, 0, 350);
