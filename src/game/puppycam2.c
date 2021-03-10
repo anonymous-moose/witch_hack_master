@@ -1118,23 +1118,22 @@ static void puppycam_collision(void)
 //Applies the PuppyCam values to the actual game's camera, giving the final product.
 static void puppycam_apply(void)
 {
-    gLakituState.pos[0] = gPuppyCam.pos[0];
-    gLakituState.pos[1] = gPuppyCam.pos[1];
-    gLakituState.pos[2] = gPuppyCam.pos[2];
-
-    gLakituState.focus[0] = gPuppyCam.focus[0];
-    gLakituState.focus[1] = gPuppyCam.focus[1];
-    gLakituState.focus[2] = gPuppyCam.focus[2];
-
-    gCamera->pos[0] = gPuppyCam.pos[0];
-    gCamera->pos[1] = gPuppyCam.pos[1];
-    gCamera->pos[2] = gPuppyCam.pos[2];
-
-    gCamera->focus[0] = gPuppyCam.focus[0];
-    gCamera->focus[1] = gPuppyCam.focus[1];
-    gCamera->focus[2] = gPuppyCam.focus[2];
+    vec3f_set(gLakituState.pos, (f32)gPuppyCam.pos[0], (f32)gPuppyCam.pos[1], (f32)gPuppyCam.pos[2]);
+    vec3f_set(gLakituState.focus, (f32)gPuppyCam.focus[0], (f32)gPuppyCam.focus[1], (f32)gPuppyCam.focus[2]);
+    vec3f_set(gLakituState.goalPos, (f32)gPuppyCam.pos[0], (f32)gPuppyCam.pos[1], (f32)gPuppyCam.pos[2]);
+    vec3f_set(gLakituState.goalFocus, (f32)gPuppyCam.focus[0], (f32)gPuppyCam.focus[1], (f32)gPuppyCam.focus[2]);
+    vec3f_set(gCamera->pos, (f32)gPuppyCam.pos[0], (f32)gPuppyCam.pos[1], (f32)gPuppyCam.pos[2]);
+    vec3f_set(gCamera->focus, (f32)gPuppyCam.focus[0], (f32)gPuppyCam.focus[1], (f32)gPuppyCam.focus[2]);
 
     gCamera->yaw = gPuppyCam.yaw;
+    gCamera->nextYaw = gPuppyCam.yaw;
+
+    gLakituState.yaw = gPuppyCam.yaw;
+    gLakituState.nextYaw = gPuppyCam.yaw;
+    gLakituState.oldYaw = gPuppyCam.yaw;
+
+    gLakituState.mode = gCamera->mode;
+    gLakituState.defMode = gCamera->defMode;
 }
 
 //The basic loop sequence, which is called outside.
