@@ -790,27 +790,26 @@ void find_surface_on_ray(Vec3f orig, Vec3f dir, struct Surface **hit_surface, Ve
 }
 
 //Checks the bounding box of a puppycam volume. If it's inside, then set the pointer to the current index.
-static u8 puppycam_check_volume_bounds(struct sPuppyVolume *volume, u16 index)
+static s32 puppycam_check_volume_bounds(struct sPuppyVolume *volume, s32 index)
 {
-    Vec3f rel;
+    s32 rel[3];
+    s32 pos[2];
 
     if (sPuppyVolumeStack[index]->room != gMarioCurrentRoom && sPuppyVolumeStack[index]->room != -1)
         return;
-
-    //debug_box_pos_rot(sPuppyVolumeStack[index]->pos, sPuppyVolumeStack[index]->radius, sPuppyVolumeStack[index]->rot);
 
     //Fetch the relative position. to the triggeree.
     rel[0] = sPuppyVolumeStack[index]->pos[0] - gPuppyCam.targetObj->oPosX;
     rel[1] = sPuppyVolumeStack[index]->pos[1] - gPuppyCam.targetObj->oPosY;
     rel[2] = sPuppyVolumeStack[index]->pos[2] - gPuppyCam.targetObj->oPosZ;
     //Use the dark, forbidden arts of trig to rotate the volume.
-    rel[0] = rel[2] * sins(sPuppyVolumeStack[index]->rot) + rel[0] * coss(sPuppyVolumeStack[index]->rot);
-    rel[2] = rel[2] * coss(sPuppyVolumeStack[index]->rot) - rel[0] * sins(sPuppyVolumeStack[index]->rot);
+    pos[0] = rel[2] * sins(sPuppyVolumeStack[index]->rot) + rel[0] * coss(sPuppyVolumeStack[index]->rot);
+    pos[1] = rel[2] * coss(sPuppyVolumeStack[index]->rot) - rel[0] * sins(sPuppyVolumeStack[index]->rot);
 
     //Now compare values.
-    if (-sPuppyVolumeStack[index]->radius[0] < rel[0] && rel[0] < sPuppyVolumeStack[index]->radius[0] &&
+    if (-sPuppyVolumeStack[index]->radius[0] < pos[0] && pos[0] < sPuppyVolumeStack[index]->radius[0] &&
         -sPuppyVolumeStack[index]->radius[1] < rel[1] && rel[1] < sPuppyVolumeStack[index]->radius[1] &&
-        -sPuppyVolumeStack[index]->radius[2] < rel[2] && rel[2] < sPuppyVolumeStack[index]->radius[2])
+        -sPuppyVolumeStack[index]->radius[2] < pos[1] && pos[1] < sPuppyVolumeStack[index]->radius[2])
         {
             *volume = *sPuppyVolumeStack[index];
             return TRUE;
