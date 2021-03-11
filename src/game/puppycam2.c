@@ -39,17 +39,17 @@ struct MemoryPool *gPuppyMemoryPool;
 s32 gPuppyError = 0;
 
 #if defined(VERSION_EU)
-static u8 gPCOptionStringsFR[][64] = {{NC_ANALOGUE_FR}, {NC_CAMX_FR}, {NC_CAMY_FR}, {NC_INVERTX_FR}, {NC_INVERTY_FR}, {NC_CAMC_FR}, {NC_CAMP_FR}, {NC_CAMD_FR}};
-static u8 gPCOptionStringsDE[][64] = {{NC_ANALOGUE_DE}, {NC_CAMX_DE}, {NC_CAMY_DE}, {NC_INVERTX_DE}, {NC_INVERTY_DE}, {NC_CAMC_DE}, {NC_CAMP_DE}, {NC_CAMD_DE}};
-static u8 gPCFlagStringsFR[][64] = {{OPTION_DISABLED_FR}, {OPTION_ENABLED_FR}};
-static u8 gPCFlagStringsDE[][64] = {{OPTION_DISABLED_DE}, {OPTION_ENABLED_DE}};
+static u8 gPCOptionStringsFR[][64] = {{NC_ANALOGUE_FR}, {NC_CAMX_FR}, {NC_CAMY_FR}, {NC_INVERTX_FR}, {NC_INVERTY_FR}, {NC_CAMC_FR}, {NC_SCHEME_FR},};
+static u8 gPCOptionStringsDE[][64] = {{NC_ANALOGUE_DE}, {NC_CAMX_DE}, {NC_CAMY_DE}, {NC_INVERTX_DE}, {NC_INVERTY_DE}, {NC_CAMC_DE}, {NC_SCHEME_DE},};
+static u8 gPCFlagStringsFR[][64] = {{OPTION_DISABLED_FR}, {OPTION_ENABLED_FR}, {OPTION_SCHEME1_FR}, {OPTION_SCHEME2_FR}};
+static u8 gPCFlagStringsDE[][64] = {{OPTION_DISABLED_DE}, {OPTION_ENABLED_DE}, {OPTION_SCHEME1_DE}, {OPTION_SCHEME2_DE}};
 static u8 gPCToggleStringsFR[][64] = {{NC_ANALOGUE_EN}, {NC_ANALOGUE_EN}, {NC_ANALOGUE_EN}, {NC_ANALOGUE_EN}, {NC_ANALOGUE_EN}};
 static u8 gPCToggleStringsDE[][64] = {{NC_ANALOGUE_EN}, {NC_ANALOGUE_EN}, {NC_ANALOGUE_EN}, {NC_ANALOGUE_EN}, {NC_ANALOGUE_EN}};
 //static u8 gPCToggleStringsFR[][64] = {{NC_BUTTON_FR}, {NC_BUTTON2_FR}, {NC_OPTION_FR}, {NC_HIGHLIGHT_L_FR}, {NC_HIGHLIGHT_R_FR}};
 //static u8 gPCToggleStringsDE[][64] = {{NC_BUTTON_DE}, {NC_BUTTON2_DE}, {NC_OPTION_DE}, {NC_HIGHLIGHT_L_DE}, {NC_HIGHLIGHT_R_DE}};
 #endif
-static u8 gPCOptionStringsEN[][64] = {{NC_ANALOGUE_EN}, {NC_CAMX_EN}, {NC_CAMY_EN}, {NC_INVERTX_EN}, {NC_INVERTY_EN}, {NC_CAMC_EN},  };
-static u8 gPCFlagStringsEN[][64] = {{OPTION_DISABLED_EN}, {OPTION_ENABLED_EN}};
+static u8 gPCOptionStringsEN[][64] = {{NC_ANALOGUE_EN}, {NC_CAMX_EN}, {NC_CAMY_EN}, {NC_INVERTX_EN}, {NC_INVERTY_EN}, {NC_CAMC_EN}, {NC_SCHEME_EN},};
+static u8 gPCFlagStringsEN[][64] = {{OPTION_DISABLED_EN}, {OPTION_ENABLED_EN}, {OPTION_SCHEME1_EN}, {OPTION_SCHEME2_EN}};
 static u8 gPCToggleStringsEN[][64] = {{NC_BUTTON_EN}, {NC_BUTTON2_EN}, {NC_OPTION_EN}, {NC_HIGHLIGHT_L}, {NC_HIGHLIGHT_R}};
 
 
@@ -72,6 +72,7 @@ static const struct gPCOptionStruct
 static const struct gPCOptionStruct gPCOptions[]=
 { //If the min and max are 0 and 1, then the value text is used, otherwise it's ignored.
     {/*Option Name*/ 0, /*Option Variable*/ &gPuppyCam.options.analogue,       /*Option Value Text Start*/ 0, /*Option Minimum*/ FALSE, /*Option Maximum*/ TRUE},
+    {/*Option Name*/ 6, /*Option Variable*/ &gPuppyCam.options.inputType,       /*Option Value Text Start*/ 2, /*Option Minimum*/ FALSE, /*Option Maximum*/ TRUE},
     {/*Option Name*/ 1, /*Option Variable*/ &gPuppyCam.options.sensitivityX,   /*Option Value Text Start*/ 255, /*Option Minimum*/ 10, /*Option Maximum*/ 500},
     {/*Option Name*/ 2, /*Option Variable*/ &gPuppyCam.options.sensitivityY,   /*Option Value Text Start*/ 255, /*Option Minimum*/ 10, /*Option Maximum*/ 500},
     {/*Option Name*/ 3, /*Option Variable*/ &gPuppyCam.options.invertX,        /*Option Value Text Start*/ 0, /*Option Minimum*/ FALSE, /*Option Maximum*/ TRUE},
@@ -431,25 +432,9 @@ void puppycam_init(void)
 
 }
 
-//Handles C Button inputs for modes that have held inputs, rather than presses.
-static void puppycam_input_hold(void)
+//The default control scheme. Hold the button down to turn the camera, and double tap to turn quickly.
+static void puppycam_input_hold_preset1(f32 ivX)
 {
-    f32 ivX = ((gPuppyCam.options.invertX*2)-1)*(gPuppyCam.options.sensitivityX/100.f);
-    s8 stickMag = 0;
-
-    gPuppyCam.framesSinceC[0]++;
-    gPuppyCam.framesSinceC[1]++;
-
-    //Analogue Camera stuff. If it fails to find an input, then it just sets stickmag to 100, which after calculations means the value goes unchanged.
-    if (gPuppyCam.options.analogue)
-        stickMag = gPuppyCam.stick2[0]*1.25f;
-    else
-        stickMag = 100;
-
-    //In theory this shouldn't be necessary, but it's nice to cover all bases.
-    if (!(gPuppyCam.flags & PUPPYCAM_BEHAVIOUR_YAW_ROTATION))
-        return;
-
     if (!gPuppyCam.options.analogue && gPlayer1Controller->buttonPressed & L_CBUTTONS && gPuppyCam.framesSinceC[0] <= 5)
     {
         gPuppyCam.yawTarget -= 0x4000*ivX;
@@ -475,6 +460,82 @@ static void puppycam_input_hold(void)
     }
     else
         gPuppyCam.yawAcceleration = approach_f32_asymptotic(gPuppyCam.yawAcceleration, 0, DECELERATION);
+}
+
+//An alternative control scheme, hold the button down to turn the camera, or press it once to turn it quickly.
+static void puppycam_input_hold_preset2(f32 ivX)
+{
+    //These set the initial button press.
+    if (gPlayer1Controller->buttonPressed & L_CBUTTONS)
+    {
+        gPuppyCam.framesSinceC[0] = 0;
+    }
+
+    if (gPlayer1Controller->buttonPressed & R_CBUTTONS)
+    {
+        gPuppyCam.framesSinceC[1] = 0;
+    }
+
+    //These handle when you release the button
+    if ((!(gPlayer1Controller->buttonDown & L_CBUTTONS)) && gPuppyCam.framesSinceC[0] <= 5)
+    {
+        gPuppyCam.yawTarget -= 0x3000*ivX;
+        play_sound(SOUND_MENU_CAMERA_ZOOM_IN, gGlobalSoundSource);
+        gPuppyCam.framesSinceC[0] = 6;
+    }
+
+    if ((!(gPlayer1Controller->buttonDown & R_CBUTTONS)) && gPuppyCam.framesSinceC[1] <= 5)
+    {
+        gPuppyCam.yawTarget += 0x3000*ivX;
+        play_sound(SOUND_MENU_CAMERA_ZOOM_IN, gGlobalSoundSource);
+        gPuppyCam.framesSinceC[1] = 6;
+    }
+
+    //Handles continuous movement as normal, as long as the button's held.
+    if (gPlayer1Controller->buttonDown & L_CBUTTONS)
+    {
+        gPuppyCam.yawAcceleration -= 20*(gPuppyCam.options.sensitivityX/100.f);
+    }
+    else
+    if (gPlayer1Controller->buttonDown & R_CBUTTONS)
+    {
+        gPuppyCam.yawAcceleration += 20*(gPuppyCam.options.sensitivityX/100.f);
+    }
+    else
+        gPuppyCam.yawAcceleration = approach_f32_asymptotic(gPuppyCam.yawAcceleration, 0, DECELERATION);
+}
+
+//Handles C Button inputs for modes that have held inputs, rather than presses.
+static void puppycam_input_hold(void)
+{
+    f32 ivX = ((gPuppyCam.options.invertX*2)-1)*(gPuppyCam.options.sensitivityX/100.f);
+    s8 stickMag = 0;
+
+    //Analogue Camera stuff. If it fails to find an input, then it just sets stickmag to 100, which after calculations means the value goes unchanged.
+    if (gPuppyCam.options.analogue)
+        stickMag = gPuppyCam.stick2[0]*1.25f;
+    else
+        stickMag = 100;
+
+    //In theory this shouldn't be necessary, but it's nice to cover all bases.
+    if (!(gPuppyCam.flags & PUPPYCAM_BEHAVIOUR_YAW_ROTATION))
+        return;
+
+    if (!gPuppyCam.options.analogue)
+    {
+        switch (gPuppyCam.options.inputType)
+        {
+            default: puppycam_input_hold_preset1(ivX); break;
+            case 1: puppycam_input_hold_preset2(ivX); break;
+        }
+    }
+    else
+    {
+        puppycam_input_hold_preset1(ivX);
+    }
+
+    gPuppyCam.framesSinceC[0]++;
+    gPuppyCam.framesSinceC[1]++;
 
     gPuppyCam.yawAcceleration = CLAMP(gPuppyCam.yawAcceleration, -100, 100);
 
