@@ -885,7 +885,7 @@ static s32 puppycam_check_volume_bounds(struct sPuppyVolume *volume, s32 index)
     f32 distCheck;
 
     if (sPuppyVolumeStack[index]->room != gMarioCurrentRoom && sPuppyVolumeStack[index]->room != -1)
-        return;
+        return FALSE;
 
     if (sPuppyVolumeStack[index]->shape == PUPPYVOLUME_SHAPE_BOX)
     {
