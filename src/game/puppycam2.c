@@ -170,6 +170,31 @@ static void newcam_set_language(void)
 }
 #endif
 
+///CUTSCENE
+
+void puppycam_activate_cutscene(s32 *scene, s32 lockinput)
+{
+    gPuppyCam.cutscene = 1;
+    gPuppyCam.sceneTimer = 0;
+    gPuppyCam.sceneFunc = scene;
+    gPuppyCam.sceneInput = lockinput;
+}
+
+static void newcam_process_cutscene(void)
+{
+    if (gPuppyCam.cutscene)
+    {
+    if ((gPuppyCam.sceneFunc)() == 1)
+    {
+        gPuppyCam.cutscene = 0;
+        gPuppyCam.sceneInput = 0;
+        gPuppyCam.flags = gPuppyCam.intendedFlags;
+    }
+    gPuppyCam.sceneTimer++;
+    }
+}
+
+
 ///MENU
 
 #define BLANK 0, 0, 0, ENVIRONMENT, 0, 0, 0, ENVIRONMENT
@@ -494,12 +519,12 @@ static void puppycam_input_hold_preset2(f32 ivX)
     //Handles continuous movement as normal, as long as the button's held.
     if (gPlayer1Controller->buttonDown & L_CBUTTONS)
     {
-        gPuppyCam.yawAcceleration -= 20*(gPuppyCam.options.sensitivityX/100.f);
+        gPuppyCam.yawAcceleration -= 10*(gPuppyCam.options.sensitivityX/100.f);
     }
     else
     if (gPlayer1Controller->buttonDown & R_CBUTTONS)
     {
-        gPuppyCam.yawAcceleration += 20*(gPuppyCam.options.sensitivityX/100.f);
+        gPuppyCam.yawAcceleration += 10*(gPuppyCam.options.sensitivityX/100.f);
     }
     else
         gPuppyCam.yawAcceleration = approach_f32_asymptotic(gPuppyCam.yawAcceleration, 0, DECELERATION);
@@ -1209,13 +1234,21 @@ static void puppycam_apply(void)
 //The basic loop sequence, which is called outside.
 void puppycam_loop(void)
 {
-    puppycam_input_core();
-    puppycam_projection();
-    puppycam_script();
-    if (gPuppyCam.flags & PUPPYCAM_BEHAVIOUR_COLLISION)
-        puppycam_collision();
+    if (!gPuppyCam.cutscene)
+    {
+        puppycam_input_core();
+        puppycam_projection();
+        puppycam_script();
+        if (gPuppyCam.flags & PUPPYCAM_BEHAVIOUR_COLLISION)
+            puppycam_collision();
+        else
+            gPuppyCam.opacity = 255;
+    }
     else
+    {
         gPuppyCam.opacity = 255;
+        newcam_process_cutscene();
+    }
 
     puppycam_apply();
 }
