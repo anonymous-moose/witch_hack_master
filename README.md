@@ -14,11 +14,11 @@ I used [this repo as a base](https://github.com/CrashOveride95/ultrasm64) for th
 - It also features a whole range of different behavioural flags that dictate how the camera itself will operate, based on what you decide to set.
 - It has a dynamic options menu, that is incredibly easy to add, or take away options for.
 - Support for a player 2 joystick, for emulator users, to allow for analogue camera control.
+- It's own easy to use system for making custom camera angles, that you can attach functions to.
+- Basic cutscene support. Vanilla cutscenes work too, they just disable Puppycamera while they're active.
 
 # To Do and future updates:
-- Add an option for changing the input preset to match with Return to Yoshi's Island because I can't believe I didn't think of that sooner.
-- Cutscenes. A lot of the system's already done, as it was written for Puppycam 1, but it does 
-- Water camera improvements. The initial implimentation is functional, but not perfect yet.
+- Cutscene splines. Right now the only option is to use vanilla splines with Puppy Camera cutscenes. It works fine but Vanilla's a bit unwieldly.
 - Translations for EU. I'm not multilingual though so pls help :))))
 
 # Screenshots:
